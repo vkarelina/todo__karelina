@@ -2,12 +2,12 @@ const todoInput = document.querySelector('.form-control');
 const elementListButton = document.querySelector('.btn-add');
 const containerList = document.querySelector('.todo-container__list');
 const checkboxAll = document.querySelector('.form-check-input');
+const buttonDeleteCompleted = document.querySelector('#button-delete-completed');
 
 let arrTodos = [];
 const KEY_ENTER = 13;
 
 const addListElement = () => {
-
   if(todoInput.value) {
     const todo = {
       id: Date.now(),
@@ -58,6 +58,18 @@ const onHandleClick = (e) => {
     const isChecked = e.target.checked;
     changeItemCheckbox(isChecked, id);
   }
+
+  if(e.target.tagName === 'P') {
+    console.log(1);
+  }
+  //использовать click для двойного нажатия.
+  //посчитать клики c event.target
+  //скрыть/показать через стили e.target.style
+}
+
+const deleteCompletedTasks = () => {
+  arrTodos = arrTodos.filter((todo) => !todo.isChecked);
+  todoRender();
 }
 
 const todoRender = () => {
@@ -101,3 +113,4 @@ elementListButton.addEventListener('click', addListElement);
 todoInput.addEventListener('keydown', onEnterAddTodo);
 containerList.addEventListener('click', onHandleClick);
 checkboxAll.addEventListener('click', changeAllCheckbox);
+buttonDeleteCompleted.addEventListener('click', deleteCompletedTasks);
