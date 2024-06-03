@@ -30,12 +30,10 @@ const onEnterAddTodo = (e) => {
 
 const onDeleteListItem = (id) => {
   arrTodos = arrTodos.filter((todo) => todo.id !== id);
-  // updateAllCheckbox();
   todoRender();
 }
 
 const changeAllCheckbox = (e) => {
-  // arrTodos.length ? true : checkboxAll.checked = false;
   arrTodos.forEach((todo) => todo.isChecked = e.target.checked);
   todoRender();
 }
@@ -45,9 +43,8 @@ const updateAllCheckbox = () => {
 }
 
 const changeItemCheckbox = (isChecked, id) => {
-  isChecked ==! isChecked;
   arrTodos.forEach((todo) => todo.id === id ? todo.isChecked = isChecked : false);
-  // updateAllCheckbox();
+  todoRender();
 }
 
 const onHandleClick = (e) => {
