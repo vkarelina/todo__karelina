@@ -65,6 +65,11 @@ input:checked[type=checkbox] {
         margin-right: 10px;
     }
 
+    input[type=text] {
+        /* visibility: hidden; */
+        /* width: 100%; */
+    }
+
     p {
         width: 100%;
         margin: 0;

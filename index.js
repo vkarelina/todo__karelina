@@ -6,6 +6,7 @@ const buttonDeleteCompleted = document.querySelector('#button-delete-completed')
 
 let arrTodos = [];
 const KEY_ENTER = 13;
+const KEY_ESC = 27;
 
 const addListElement = () => {
   if(todoInput.value) {
@@ -59,13 +60,29 @@ const onHandleClick = (e) => {
     changeItemCheckbox(isChecked, id);
   }
 
-  if(e.target.tagName === 'P') {
-    console.log(1);
+  if(e.target.tagName === 'P' && e.detail === 2) {
+    e.target.hidden = true;
+    e.target.previousElementSibling.hidden = false;
   }
-  //использовать click для двойного нажатия.
-  //посчитать клики c event.target
-  //скрыть/показать через стили e.target.style
 }
+
+const moveTodoItem = (e) => {
+  const id = Number(e.target.parentElement.id);
+  if(e.keyCode === KEY_ENTER) {
+    arrTodos.forEach((todo) => todo.id === id ? todo.title = e.target.value : false);
+    todoRender();
+  }
+
+  if(e.keyCode === KEY_ESC) {
+    todoRender();
+  }
+}
+
+const blurForInput = (e) => {
+  const id = Number(e.target.parentElement.id);
+  arrTodos.forEach((todo) => todo.id === id ? todo.title = e.target.value : false);
+  todoRender();
+} 
 
 const deleteCompletedTasks = () => {
   arrTodos = arrTodos.filter((todo) => !todo.isChecked);
@@ -83,6 +100,11 @@ const todoRender = () => {
                     class="form-check-input check-item"
                     type="checkbox"
                     ${ todo.isChecked ? 'checked' : ''}
+                >
+                <input
+                  class="form-control" type="text" id="input-edit" 
+                  hidden
+                  value=${todo.title}
                 >
                 <p>${todo.title}</p>
                 <button 
@@ -111,6 +133,9 @@ const todoRender = () => {
 
 elementListButton.addEventListener('click', addListElement);
 todoInput.addEventListener('keydown', onEnterAddTodo);
+containerList.addEventListener('keydown', moveTodoItem);
+document.addEventListener('blur', blurForInput, true);
 containerList.addEventListener('click', onHandleClick);
 checkboxAll.addEventListener('click', changeAllCheckbox);
 buttonDeleteCompleted.addEventListener('click', deleteCompletedTasks);
+
