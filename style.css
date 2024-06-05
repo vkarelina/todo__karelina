@@ -65,11 +65,6 @@ input:checked[type=checkbox] {
         margin-right: 10px;
     }
 
-    input[type=text] {
-        /* visibility: hidden; */
-        /* width: 100%; */
-    }
-
     p {
         width: 100%;
         margin: 0;
@@ -98,4 +93,15 @@ input:checked[type=checkbox] {
     color: grey;
     font-weight: 400;
     font-size: 20px;
+}
+
+.tab {
+    background-color: white;
+    color: grey;
+    border-color: rgb(201, 201, 201);
+}
+
+.active {
+    background-color: grey;
+    color: white;
 }
