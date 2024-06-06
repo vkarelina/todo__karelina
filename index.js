@@ -55,7 +55,7 @@ const checkAll = (e) => {
   todoRender();
 }
 
-function updateAllCheckbox() {
+const updateAllCheckbox = () => {
   checkboxAll.checked = arrTodos.length ? arrTodos.every((todo) => todo.isChecked) : false;
 }
 
