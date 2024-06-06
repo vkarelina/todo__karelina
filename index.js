@@ -1,3 +1,6 @@
+const KEY_ENTER = 13;
+const KEY_ESC = 27;
+
 const todoInput = document.querySelector('.form-control');
 const elementListButton = document.querySelector('.btn-add');
 const containerList = document.querySelector('.todo-container__list');
@@ -5,11 +8,12 @@ const checkboxAll = document.querySelector('.form-check-input');
 const buttonDeleteCompleted = document.querySelector('#button-delete-completed');
 const todoConteinerTabs = document.querySelectorAll('.tab');
 const conteinerTabs = document.querySelector('.todo-conteiner__tabs');
+const containerPages = document.querySelector('.todo-conteiner__pagination');
 
 let arrTodos = [];
-const KEY_ENTER = 13;
-const KEY_ESC = 27;
 let filterType = 'all';
+const countTodo = 5;
+let currentPage = 0;
 
 const addListElement = () => {
   if(todoInput.value) {
@@ -20,6 +24,7 @@ const addListElement = () => {
     }
 
     arrTodos.push(todo);
+    console.log(arrTodos[0].title)
     filterType = 'all';
     todoRender();
     todoInput.value = '';
@@ -70,6 +75,7 @@ const onHandleClick = (e) => {
   if(e.target.tagName === 'P' && e.detail === 2) {
     e.target.hidden = true;
     e.target.previousElementSibling.hidden = false;
+    console.log(arrTodos[0])
   }
 }
 
@@ -95,8 +101,10 @@ const blurForInput = (e) => {
 //сохранение изменений
 const saveChangeTodoItem = (e) => {
   const id = Number(e.target.parentElement.id);
+  console.log(arrTodos[0].title)
+  console.log(e.target.value)
   arrTodos.forEach((todo) => todo.id === id ? todo.title = e.target.value : false);
-  console.log(arrTodos[0]);
+  console.log(arrTodos[0].title);
   todoRender();
 }
 
@@ -140,12 +148,44 @@ const editStyleActivTab = () => {
   });
 }
 
+const pagination = () => {
+  const countTab = Math.ceil(getFilteredTasks().length / countTodo);
+  const start = currentPage * countTodo;
+  const end = start + countTodo;
+
+  renderButtonPagination(countTab);
+  return getFilteredTasks().slice(start, end);
+}
+
+const renderButtonPagination = (countTab) => {
+  let containerPagination = '';
+
+  for(let i = 0; i < countTab; i++) {
+    containerPagination += `
+    <button 
+      class="btn btn-secondary btn-add page ${i === currentPage ? 'active' : ''}" 
+      id=${i}
+    >
+    ${i + 1}
+    </button>`;
+  }
+
+  containerPages.innerHTML = containerPagination;
+}
+
+const getPaginationButton = (e) => {
+  currentPage = Number(e.target.id);
+  pagination();
+  todoRender();
+}
+
 const todoRender = () => {
   let container = '';
-  const filteredTasks = getFilteredTasks();
+  const filteredTasksAndPaginations = pagination();
+  console.log('render')
 
   if(arrTodos.length !== 0) {
-    filteredTasks.forEach((todo) => {
+    filteredTasksAndPaginations.forEach((todo) => {
       container += `
             <li class="todo-container__list__item" id="${todo.id}">
                 <input 
@@ -154,9 +194,8 @@ const todoRender = () => {
                     ${ todo.isChecked ? 'checked' : ''}
                 >
                 <input
-                  class="form-control" type="text" id="input-edit" 
+                  class="form-control" id="input-edit" 
                   hidden
-                  type="text"
                   value=${todo.title}
                 >
                 <p>${todo.title}</p>
@@ -181,6 +220,7 @@ const todoRender = () => {
     </div>
     `
   }
+
   editCounterTextInTab();
   editStyleActivTab();
   updateAllCheckbox();
@@ -195,3 +235,4 @@ checkboxAll.addEventListener('click', changeAllCheckbox);
 buttonDeleteCompleted.addEventListener('click', deleteCompletedTasks);
 conteinerTabs.addEventListener('click', getFilteredTasks);
 conteinerTabs.addEventListener('click', editFilterTasks);
+containerPages.addEventListener('click', getPaginationButton);
