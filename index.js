@@ -7,20 +7,18 @@ const elementListButton = document.querySelector('.btn-add');
 const containerList = document.querySelector('.todo-container__list');
 const checkboxAll = document.querySelector('.form-check-input');
 const buttonDeleteCompleted = document.querySelector('#button-delete-completed');
-const todoConteinerTabs = document.querySelectorAll('.tab');
-const conteinerTabs = document.querySelector('.todo-conteiner__tabs');
+const todoContainerTabs = document.querySelectorAll('.tab');
+const containerTabs = document.querySelector('.todo-conteiner__tabs');
 const containerPages = document.querySelector('.todo-conteiner__pagination');
 
 let arrTodos = [];
 let filterType = 'all';
 let currentPage = 0;
 
-//экранирование текста
 const screeningText = (text) => {
-  return text.trim().replace(/</g, "&lt;");
+  return text.trim().replace(/</g, "&lt;").replace(/\s+/g, " ");
 }
 
-//добавление todo
 const addListElement = () => {
   if(screeningText(todoInput.value)) {
     const todo = {
@@ -33,54 +31,44 @@ const addListElement = () => {
     filterType = 'all';
     todoInput.value = '';
 
-    // const page = Math.ceil(getFilteredTasks().length / COUNT_TODO);
+    const page = Math.ceil(getFilteredTasks().length / COUNT_TODO);
 
-    // if(currentPage !== page-1) {
-    //   // console.log(currentPage)
-    //   // console.log(page-1)
-    //   currentPage = page;
-    // }
+    if(currentPage !== page - 1) currentPage = page - 1;
 
     todoRender();
   }
 }
 
-//добавление по кнопке ENTER
 const onEnterAddTodo = (e) => {
   if(e.keyCode === KEY_ENTER) {
     addListElement();
   }
 }
 
-//удаление todo
-const onDeleteListItem = (id) => {
+const onDeleteTodo = (id) => {
   arrTodos = arrTodos.filter((todo) => todo.id !== id);
   todoRender();
 }
 
-//изменение состояния всех чекбоксов в зависимости от основного
-const changeAllCheckbox = (e) => {
+const checkAll = (e) => {
   arrTodos.forEach((todo) => todo.isChecked = e.target.checked);
   todoRender();
 }
 
-//изменение состояния чекбокса check all при условии, что все эл-ты true/false
 function updateAllCheckbox() {
   checkboxAll.checked = arrTodos.length ? arrTodos.every((todo) => todo.isChecked) : false;
 }
 
-//изменение чекбокса для каждого todo
 const changeItemCheckbox = (isChecked, id) => {
   arrTodos.forEach((todo) => todo.id === id ? todo.isChecked = isChecked : false);
   todoRender();
 }
 
-//обработчик кликов на todo
 const onHandleClick = (e) => {
   const id = Number(e.target.parentElement.id);
 
   if(e.target.type === 'submit') {
-    onDeleteListItem(id);
+    onDeleteTodo(id);
   }
 
   if(e.target.type === 'checkbox') {
@@ -95,9 +83,8 @@ const onHandleClick = (e) => {
   }
 }
 
-//редактирование текста в todo по кнопке
 const changeTodoItem = (e) => {
-  if(e.keyCode === KEY_ENTER) {
+  if(e.keyCode === KEY_ENTER && e.target.type === 'text') {
     saveChangeTodoItem(e);
   }
 
@@ -106,17 +93,15 @@ const changeTodoItem = (e) => {
   }
 }
 
-//редактирование текста в todo через blur()
-const blurForInput = (e) => {
+const editByBlur = (e) => {
   if(e.target.type === 'text' && e.sourceCapabilities) {
     saveChangeTodoItem(e);
   }
 } 
 
-//сохранение изменений todo
 const saveChangeTodoItem = (e) => {
   const id = Number(e.target.parentElement.id);
-  if(e.target.value === '') {
+  if(screeningText(e.target.value) === '') {
     todoRender();
     return
   }
@@ -124,21 +109,19 @@ const saveChangeTodoItem = (e) => {
   todoRender();
 }
 
-//удаление всех отмеченных todo по кнопке delete completed
 const deleteCompletedTasks = () => {
   arrTodos = arrTodos.filter((todo) => !todo.isChecked);
   todoRender();
 }
 
-//редактирование 
 const editCounterTextInTab = () => {
   const countAll = arrTodos.length; 
   const countActive = (arrTodos.filter((todo) => !todo.isChecked)).length;
   const countComplited = countAll - countActive;
 
-  todoConteinerTabs[0].innerText = `All (${countAll})`;
-  todoConteinerTabs[1].innerText = `Active (${countActive})`;
-  todoConteinerTabs[2].innerText = `Complited (${countComplited})`;
+  todoContainerTabs[0].innerText = `All (${countAll})`;
+  todoContainerTabs[1].innerText = `Active (${countActive})`;
+  todoContainerTabs[2].innerText = `Complited (${countComplited})`;
 }
 
 const getFilteredTasks = () => {
@@ -152,13 +135,6 @@ const getFilteredTasks = () => {
   }
 }
 
-// const switchPagination = () => {
-//   if(getFilteredTasks().length > 5) {
-//     currentPage = Math.ceil(getFilteredTasks().length / COUNT_TODO);
-//     return currentPage
-//   }
-// }
-
 const editFilterTasks = (e) => {
   filterType = e.target.id;
   currentPage = 0;
@@ -166,7 +142,7 @@ const editFilterTasks = (e) => {
 }
 
 const editStyleActivTab = () => {
-  todoConteinerTabs.forEach((tab) => {
+  todoContainerTabs.forEach((tab) => {
     tab.classList.remove('active');
     tab.id === filterType ? tab.classList.add('active') : false;
   });
@@ -253,10 +229,10 @@ const todoRender = () => {
 elementListButton.addEventListener('click', addListElement);
 todoInput.addEventListener('keydown', onEnterAddTodo);
 containerList.addEventListener('keydown', changeTodoItem);
-containerList.addEventListener('blur', blurForInput, true);
+containerList.addEventListener('blur', editByBlur, true);
 containerList.addEventListener('click', onHandleClick);
-checkboxAll.addEventListener('click', changeAllCheckbox);
+checkboxAll.addEventListener('click', checkAll);
 buttonDeleteCompleted.addEventListener('click', deleteCompletedTasks);
-conteinerTabs.addEventListener('click', getFilteredTasks);
-conteinerTabs.addEventListener('click', editFilterTasks);
+containerTabs.addEventListener('click', getFilteredTasks);
+containerTabs.addEventListener('click', editFilterTasks);
 containerPages.addEventListener('click', getPaginationButton);
