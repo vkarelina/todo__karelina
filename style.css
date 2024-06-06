@@ -107,6 +107,7 @@ input:checked[type=checkbox] {
 }
 
 .todo-conteiner__pagination {
+    max-width: 500px;
     button {
         background-color: white;
         color: grey;
