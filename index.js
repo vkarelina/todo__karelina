@@ -20,12 +20,15 @@ const screeningText = (text) => {
 }
 
 const addListElement = () => {
-  if(screeningText(todoInput.value)) {
+  const title = screeningText(todoInput.value);
+
+  if(title) {
     const todo = {
       id: Date.now(),
-      title: screeningText(todoInput.value),
+      title: title,
       isChecked: false,
     }
+
     if(todoInput.value.length > 256) return alert('Max length 256');
     arrTodos.push(todo);
     filterType = 'all';
@@ -101,12 +104,14 @@ const editByBlur = (e) => {
 
 const saveChangeTodoItem = (e) => {
   const id = Number(e.target.parentElement.id);
-  if(screeningText(e.target.value) === '') {
+  const title = screeningText(e.target.value);
+
+  if(title === '') {
     todoRender();
-    return
+  } else {
+    arrTodos.forEach((todo) => todo.id === id ? todo.title = title : false);
+    todoRender();
   }
-  arrTodos.forEach((todo) => todo.id === id ? todo.title = screeningText(e.target.value) : false);
-  todoRender();
 }
 
 const deleteCompletedTasks = () => {
@@ -187,26 +192,21 @@ const todoRender = () => {
     filteredTasksAndPaginations.forEach((todo) => {
       container += `
             <li class="todo-container__list__item" id="${todo.id}">
-                <input 
-                    class="form-check-input check-item"
-                    type="checkbox"
-                    ${ todo.isChecked ? 'checked' : ''}
-                >
-                <input
-                  class="form-control"
-                  type="text" id="input-edit" 
-                  hidden
-                  value="${todo.title}"
-                >
-                <p id="todo-text">${todo.title}</p>
-                <button 
-                    type="submit"
-                    class="btn btn-secondary todo-container__list__item__button"
-                >
-                    X
-                </button>
+              <input 
+                class="form-check-input check-item"
+                type="checkbox"
+                ${ todo.isChecked ? 'checked' : ''}
+              >
+              <input
+                class="form-control"
+                id="input-edit" 
+                hidden
+                value="${todo.title}"
+              >
+              <p id="todo-text">${todo.title}</p>
+                <button type="submit" class="btn btn-secondary todo-container__list__item__button">X</button>
             </li>
-            `;
+          `;
     })
 
     containerList.innerHTML = container;
@@ -214,9 +214,9 @@ const todoRender = () => {
     containerList.innerHTML = '';
     containerList.innerHTML += `
     <div class="todo-container__list">
-        <div class="todo-conteiner__empty-block">
-            <p>No todos :c</p>
-        </div>
+      <div class="todo-conteiner__empty-block">
+        <p>No todos :c</p>
+      </div>
     </div>
     `
   }
