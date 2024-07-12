@@ -2,6 +2,7 @@
   const KEY_ENTER = 13;
   const KEY_ESC = 27;
   const COUNT_TODO = 5;
+  const URL = 'http://localhost:5000/tasks';
 
   const todoInput = document.querySelector('.form-control');
   const elementListButton = document.querySelector('.btn-add');
@@ -16,30 +17,94 @@
   let filterType = 'all';
   let currentPage = 0;
 
+  const fetchAllTodos = () => {
+    fetch(URL)
+    .then(res => res.json())
+    .then(tasks => {
+      arrTodos.push(...tasks);
+      todoRender();
+    })
+    .catch(error => {
+      console.error('Error fetching tasks:', error);
+    });
+  }
+
+  const createTodos = (todo) => {
+    fetch(URL, {
+      headers: {
+        "Content-type": "application/json"
+      },
+      method: 'POST',
+      body: JSON.stringify(todo),
+    })
+    .then(res => res.json())
+    .then(task => {
+      arrTodos.push(task);
+      todoRender();
+    })
+    .catch(error => {
+      console.error('Error fetching tasks:', error);
+    });
+  }
+
+  const updateTodo = (id, data) => {
+    fetch(`${URL}/${id}`, {
+      headers: {
+        "Content-type": "application/json"
+      },
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+    .then(res => res.json())
+    .then(res => {
+      todoRender();
+    })
+    .catch(error => {
+      console.error('Error fetching tasks:', error);
+    });
+  }
+
+  const deleteTodo = (id) => {
+    fetch(`${URL}/${id}`, {
+      headers: {
+        "Content-type": "application/json"
+      },
+      method: 'DELETE',
+    })
+    .then(res => res.json())
+    .then(res => {
+      todoRender();
+    })
+    .catch(error => {
+      console.error('Error fetching tasks:', error);
+    });
+  }
+  
+  const firstRenderPage = () => {
+    fetchAllTodos();
+  }
+
   const screeningText = (text) => {
     return text.trim().replace(/</g, "&lt;").replace(/\s+/g, " ");
   }
 
   const addListElement = () => {
-    const title = screeningText(todoInput.value);
+    const text = screeningText(todoInput.value);
 
-    if(title) {
+    if(text) {
       const todo = {
-        id: Date.now(),
-        title: title,
-        isChecked: false,
+        text: text,
       }
 
       if(todoInput.value.length > 256) return alert('Max length 256');
-      arrTodos.push(todo);
+      createTodos(todo);
       filterType = 'all';
       todoInput.value = '';
 
       const page = Math.ceil(getFilteredTasks().length / COUNT_TODO);
 
       if(currentPage !== page - 1) currentPage = page - 1;
-
-      todoRender();
+      // todoRender();
     }
   }
 
@@ -50,7 +115,8 @@
   }
 
   const onDeleteTodo = (id) => {
-    arrTodos = arrTodos.filter((todo) => todo.id !== id);
+    deleteTodo(id);
+    // arrTodos = arrTodos.filter((todo) => todo.id !== id);
     todoRender();
   }
 
@@ -64,7 +130,15 @@
   }
 
   const changeItemCheckbox = (isChecked, id) => {
-    arrTodos.forEach((todo) => todo.id === id ? todo.isChecked = isChecked : false);
+    const updateItemCheckbox = {
+      isChecked: isChecked,
+    }
+
+    arrTodos.forEach((todo) => {
+      todo.id === id ? todo.isChecked = isChecked : false
+    });
+
+    updateTodo(id, updateItemCheckbox);
     todoRender();
   }
 
@@ -77,6 +151,8 @@
 
     if(e.target.type === 'checkbox') {
       const isChecked = e.target.checked;
+      console.log(e.target.value)
+      console.log(id)
       changeItemCheckbox(isChecked, id);
     }
 
@@ -105,12 +181,12 @@
 
   const saveChangeTodoItem = (e) => {
     const id = Number(e.target.parentElement.id);
-    const title = screeningText(e.target.value);
+    const text = screeningText(e.target.value);
 
-    if(title === '') {
+    if(text === '') {
       todoRender();
     } else {
-      arrTodos.forEach((todo) => todo.id === id ? todo.title = title : false);
+      arrTodos.forEach((todo) => todo.id === id ? todo.text = text : false);
       todoRender();
     }
   }
@@ -187,6 +263,7 @@
 
   const todoRender = () => {
     let container = '';
+    // fetchAllTodos();
     const filteredTasksAndPaginations = pagination();
 
     if(filteredTasksAndPaginations.length !== 0) {
@@ -202,9 +279,9 @@
                   class="form-control"
                   id="input-edit" 
                   hidden
-                  value="${todo.title}"
+                  value="${todo.text}"
                 >
-                <p id="todo-text">${todo.title}</p>
+                <p id="todo-text">${todo.text}</p>
                   <button type="submit" class="btn btn-secondary todo-container__list__item__button">X</button>
               </li>
             `;
@@ -237,4 +314,5 @@
   containerTabs.addEventListener('click', getFilteredTasks);
   containerTabs.addEventListener('click', editFilterTasks);
   containerPages.addEventListener('click', getPaginationButton);
+  window.addEventListener('load', firstRenderPage, {once: true});
 })();
