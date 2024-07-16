@@ -2,6 +2,7 @@
   const KEY_ENTER = 13;
   const KEY_ESC = 27;
   const COUNT_TODO = 5;
+  const DBL_CLICK = 2;
   const URL = 'http://localhost:5000/tasks';
 
   const todoInput = document.querySelector('.form-control');
@@ -12,151 +13,179 @@
   const todoContainerTabs = document.querySelectorAll('.tab');
   const containerTabs = document.querySelector('.todo-conteiner__tabs');
   const containerPages = document.querySelector('.todo-conteiner__pagination');
+  const modalWindowStatus = document.querySelector('.todo-container__modal');
+
+  const filterTypes = {
+    all: 'all',
+    active: 'active',
+    completed: 'completed',
+  }
 
   let arrTodos = [];
-  let filterType = 'all';
+  let messages = [];
+  let filterType = filterTypes.all;
   let currentPage = 0;
 
+  const fetchApi = ({ url, method, body }) => {
+    return fetch(`${URL}/${url}`, {
+      headers: {
+        "Content-type": "application/json"
+      },
+      method,
+      body: JSON.stringify(body),
+    })
+      .then(res => res.json())
+  }
+
   const fetchAllTodos = () => {
-    fetch(URL)
-    .then(res => res.json())
-    .then(tasks => {
-      arrTodos.push(...tasks);
-      todoRender();
-    })
-    .catch(error => {
-      console.error('Error fetching tasks:', error);
-    });
+    return fetchApi({ url: '' });
   }
 
-  const createTodos = (todo) => {
-    fetch(URL, {
-      headers: {
-        "Content-type": "application/json"
-      },
-      method: 'POST',
-      body: JSON.stringify(todo),
-    })
-    .then(res => res.json())
-    .then(task => {
-      arrTodos.push(task);
-      todoRender();
-    })
-    .catch(error => {
-      console.error('Error fetching tasks:', error);
-    });
+  const fetchCreateTodos = (todo) => {
+    return fetchApi({ url: '', method: 'POST', body: todo });
   }
 
-  const updateTodo = (id, data) => {
-    fetch(`${URL}/${id}`, {
-      headers: {
-        "Content-type": "application/json"
-      },
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    })
-    .then(res => res.json())
-    .then(res => {
-      todoRender();
-    })
-    .catch(error => {
-      console.error('Error fetching tasks:', error);
-    });
+  const fetchUpdateTodo = (id, data) => {
+    return fetchApi({ url: id, method: 'PATCH', body: data });
   }
 
-  const deleteTodo = (id) => {
-    fetch(`${URL}/${id}`, {
-      headers: {
-        "Content-type": "application/json"
-      },
-      method: 'DELETE',
-    })
-    .then(res => res.json())
-    .then(res => {
-      todoRender();
-    })
-    .catch(error => {
-      console.error('Error fetching tasks:', error);
-    });
+  const fetchUpdateAllTodos = (data) => {
+    return fetchApi({ url: '', method: 'PATCH', body: data });
   }
-  
+
+  const fetchDeleteTodo = (id) => {
+    return fetchApi({ url: id, method: 'DELETE' });
+  }
+
+  const fetchDeleteAllCompleted = () => {
+    return fetchApi({ url: '', method: 'DELETE' });
+  }
+
   const firstRenderPage = () => {
-    fetchAllTodos();
+    fetchAllTodos()
+      .then(tasks => {
+        if (!tasks.ok) throw new Error(tasks.message);
+        arrTodos.push(...tasks);
+        checkboxAll.checked = arrTodos.every((todo) => todo.isChecked);
+        todoRender();
+      })
+      .catch(error => {
+        error.message
+            .split(',')
+            .forEach(message => modalRender(message));
+      });
   }
 
   const screeningText = (text) => {
-    return text.trim().replace(/</g, "&lt;").replace(/\s+/g, " ");
+    return text.trim()
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
+      .replace(/\s+/g, " ");
   }
 
   const addListElement = () => {
     const text = screeningText(todoInput.value);
 
-    if(text) {
-      const todo = {
-        text: text,
-      }
+    if (text) {
+      const todo = { text: 1, title: 2 };
+      if (todoInput.value.length > 256) return alert('Max length 256');
+      fetchCreateTodos(todo)
+        .then(task => {
+          if (!task.ok) throw new Error(task.message);
 
-      if(todoInput.value.length > 256) return alert('Max length 256');
-      createTodos(todo);
-      filterType = 'all';
-      todoInput.value = '';
+          arrTodos.push(task);
+          filterType = filterTypes.all;
+          todoInput.value = '';
 
-      const page = Math.ceil(getFilteredTasks().length / COUNT_TODO);
+          const filteredTasks = getFilteredTasks();
+          const page = Math.ceil(filteredTasks.length / COUNT_TODO);
 
-      if(currentPage !== page - 1) currentPage = page - 1;
-      // todoRender();
+          if (currentPage !== page - 1) currentPage = page - 1;
+          todoRender();
+        })
+        .catch(error => {
+          error.message
+            .split(',')
+            .forEach(message => modalRender(message));
+        });
     }
   }
 
   const onEnterAddTodo = (e) => {
-    if(e.keyCode === KEY_ENTER) {
-      addListElement();
-    }
+    if (e.keyCode === KEY_ENTER) addListElement();
   }
 
   const onDeleteTodo = (id) => {
-    deleteTodo(id);
-    // arrTodos = arrTodos.filter((todo) => todo.id !== id);
-    todoRender();
+    fetchDeleteTodo(id)
+      .then(res => {
+        if (!res.ok) throw new Error(res.message);
+        arrTodos = arrTodos.filter((todo) => todo.id !== id);
+        todoRender();
+      })
+      .catch(error => {
+        error.message
+            .split(',')
+            .forEach(message => modalRender(message));
+      });
   }
 
   const checkAll = (e) => {
-    arrTodos.forEach((todo) => todo.isChecked = e.target.checked);
-    todoRender();
+    e.preventDefault();
+    const isChecked = e.target.checked;
+
+    if (arrTodos.length) {
+      fetchUpdateAllTodos({ isChecked })
+        .then(_ => {
+          if (!task.ok) throw new Error(task.message);
+          arrTodos = arrTodos.map(todo => ({ ...todo, isChecked }));
+          todoRender();
+        })
+        .catch(error => {
+          error.message
+            .split(',')
+            .forEach(message => modalRender(message));
+        });
+    }
   }
 
   const updateAllCheckbox = () => {
-    checkboxAll.checked = arrTodos.length ? arrTodos.every((todo) => todo.isChecked) : false;
+    checkboxAll.checked = arrTodos.length
+      ? arrTodos.every(todo => todo.isChecked)
+      : false;
   }
 
   const changeItemCheckbox = (isChecked, id) => {
-    const updateItemCheckbox = {
-      isChecked: isChecked,
-    }
-
-    arrTodos.forEach((todo) => {
-      todo.id === id ? todo.isChecked = isChecked : false
-    });
-
-    updateTodo(id, updateItemCheckbox);
-    todoRender();
+    fetchUpdateTodo(id, { isChecked })
+      .then(res => {
+        arrTodos.forEach(todo => {
+          if (!todo.ok) throw new Error(todo.message);
+          if (todo.id === res.id) todo.isChecked = res.isChecked;
+        });
+        todoRender();
+      })
+      .catch(error => {
+        error.message
+            .split(',')
+            .forEach(message => modalRender(message));
+      });
   }
 
   const onHandleClick = (e) => {
+    e.preventDefault();
     const id = Number(e.target.parentElement.id);
 
-    if(e.target.type === 'submit') {
+    if (e.target.type === 'submit') {
       onDeleteTodo(id);
     }
 
-    if(e.target.type === 'checkbox') {
+    if (e.target.type === 'checkbox') {
       const isChecked = e.target.checked;
-      console.log(e.target.value)
-      console.log(id)
       changeItemCheckbox(isChecked, id);
     }
 
-    if(e.target.id === 'todo-text' && e.detail === 2) {
+    if (e.target.id === 'todo-text' && e.detail === DBL_CLICK) {
       e.target.hidden = true;
       e.target.previousElementSibling.hidden = false;
       e.target.previousElementSibling.focus()
@@ -164,41 +193,61 @@
   }
 
   const changeTodoItem = (e) => {
-    if(e.keyCode === KEY_ENTER && e.target.type === 'text') {
+    if (e.keyCode === KEY_ENTER && e.target.type === 'text') {
       saveChangeTodoItem(e);
     }
 
-    if(e.keyCode === KEY_ESC) {
-      todoRender();
-    }
+    if (e.keyCode === KEY_ESC) todoRender();
   }
 
   const editByBlur = (e) => {
-    if(e.target.type === 'text' && e.sourceCapabilities) {
+    if (e.target.type === 'text' && e.sourceCapabilities) {
       saveChangeTodoItem(e);
     }
-  } 
+  }
 
   const saveChangeTodoItem = (e) => {
     const id = Number(e.target.parentElement.id);
     const text = screeningText(e.target.value);
 
-    if(text === '') {
-      todoRender();
+    if (text) {
+      fetchUpdateTodo(id, { text })
+        .then(res => {
+          if (!res.ok) throw new Error(res.message);
+          arrTodos.forEach(todo => {
+            if (todo.id === res.id) todo.text = res.text;
+          });
+          todoRender();
+        })
+        .catch(error => {
+          error.message
+            .split(',')
+            .forEach(message => modalRender(message));
+        })
     } else {
-      arrTodos.forEach((todo) => todo.id === id ? todo.text = text : false);
       todoRender();
     }
   }
 
   const deleteCompletedTasks = () => {
-    arrTodos = arrTodos.filter((todo) => !todo.isChecked);
-    todoRender();
+    if (arrTodos.length) {
+      fetchDeleteAllCompleted()
+        .then(res => {
+          if (!res.ok) throw new Error(res.message);
+          arrTodos = arrTodos.filter(todo => !todo.isChecked);
+          todoRender();
+        })
+        .catch(error => {
+          error.message
+            .split(',')
+            .forEach(message => modalRender(message));
+        });
+    }
   }
 
   const editCounterTextInTab = () => {
-    const countAll = arrTodos.length; 
-    const countActive = (arrTodos.filter((todo) => !todo.isChecked)).length;
+    const countAll = arrTodos.length;
+    const countActive = (arrTodos.filter(todo => !todo.isChecked)).length;
     const countComplited = countAll - countActive;
 
     todoContainerTabs[0].innerText = `All (${countAll})`;
@@ -207,13 +256,13 @@
   }
 
   const getFilteredTasks = () => {
-    switch(filterType) {
-    case 'active':
-      return arrTodos.filter((todo) => !todo.isChecked);
-    case 'complited':
-      return arrTodos.filter((todo) => todo.isChecked);
-    default:
-      return arrTodos;
+    switch (filterType) {
+      case filterTypes.active:
+        return arrTodos.filter((todo) => !todo.isChecked);
+      case filterTypes.completed:
+        return arrTodos.filter((todo) => todo.isChecked);
+      default:
+        return arrTodos;
     }
   }
 
@@ -226,23 +275,26 @@
   const editStyleActivTab = () => {
     todoContainerTabs.forEach((tab) => {
       tab.classList.remove('active');
-      tab.id === filterType ? tab.classList.add('active') : false;
+      if (tab.id === filterType) tab.classList.add('active');
     });
   }
 
   const pagination = () => {
-    const countTab = Math.ceil(getFilteredTasks().length / COUNT_TODO);
+    const filteredTasks = getFilteredTasks();
+    const countTab = Math.ceil(filteredTasks.length / COUNT_TODO);
+
+    if (countTab === currentPage) currentPage = countTab - 1;
+
     const start = currentPage * COUNT_TODO;
     const end = start + COUNT_TODO;
-
     renderButtonPagination(countTab);
-    return getFilteredTasks().slice(start, end);
+    return filteredTasks.slice(start, end);
   }
 
   const renderButtonPagination = (countTab) => {
     let containerPagination = '';
 
-    for(let i = 0; i < countTab; i++) {
+    for (let i = 0; i < countTab; i++) {
       containerPagination += `
       <button 
         class="btn btn-secondary btn-add page ${i === currentPage ? 'active' : ''}" 
@@ -261,19 +313,46 @@
     todoRender();
   }
 
+  const modalRender = (error) => {
+    if (error) {
+      messages.push(error);
+      renderMessagesModal();
+
+      setTimeout(() => {
+        messages.shift();
+        renderMessagesModal();
+      }, 10000);
+    }
+  }
+
+  const renderMessagesModal = () => {
+    let modal = '';
+    messages.forEach(message => {
+      modal += `
+        <div class="alert alert-danger d-flex align-items-center" role="alert">
+          <img src="./icons/danger.svg">
+          <div>
+            ${message ? message : ''}
+          </div>
+        </div>
+      `
+    });
+
+    modalWindowStatus.innerHTML = modal;
+  }
+
   const todoRender = () => {
     let container = '';
-    // fetchAllTodos();
     const filteredTasksAndPaginations = pagination();
 
-    if(filteredTasksAndPaginations.length !== 0) {
-      filteredTasksAndPaginations.forEach((todo) => {
+    if (filteredTasksAndPaginations.length) {
+      filteredTasksAndPaginations.forEach(todo => {
         container += `
               <li class="todo-container__list__item" id="${todo.id}">
                 <input 
                   class="form-check-input check-item"
                   type="checkbox"
-                  ${ todo.isChecked ? 'checked' : ''}
+                  ${todo.isChecked ? 'checked' : ''}
                 >
                 <input
                   class="form-control"
@@ -284,13 +363,10 @@
                 <p id="todo-text">${todo.text}</p>
                   <button type="submit" class="btn btn-secondary todo-container__list__item__button">X</button>
               </li>
-            `;
-      })
-
-      containerList.innerHTML = container;
+        `;
+      });
     } else {
-      containerList.innerHTML = '';
-      containerList.innerHTML += `
+      container += `
       <div class="todo-container__list">
         <div class="todo-conteiner__empty-block">
           <p>No todos :c</p>
@@ -298,6 +374,7 @@
       </div>
       `
     }
+    containerList.innerHTML = container;
 
     editCounterTextInTab();
     editStyleActivTab();
@@ -314,5 +391,5 @@
   containerTabs.addEventListener('click', getFilteredTasks);
   containerTabs.addEventListener('click', editFilterTasks);
   containerPages.addEventListener('click', getPaginationButton);
-  window.addEventListener('load', firstRenderPage, {once: true});
+  window.addEventListener('load', firstRenderPage, { once: true });
 })();

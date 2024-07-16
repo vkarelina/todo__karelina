@@ -23,6 +23,8 @@ input:checked[type=checkbox] {
 
 .todo-container {
     width: 100%;
+    height: 100%;
+    position: absolute;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -112,5 +114,16 @@ input:checked[type=checkbox] {
         background-color: white;
         color: grey;
         margin: 5px;
+    }
+}
+
+.todo-container__modal {
+    max-width: 500px;
+    position: fixed;
+    right: 20px;
+    bottom: 0;
+
+    img {
+        padding-right: 5px;
     }
 }
