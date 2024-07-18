@@ -26,54 +26,145 @@
   let filterType = filterTypes.all;
   let currentPage = 0;
 
-  const fetchApi = ({ url, method, body }) => {
-    return fetch(`${URL}/${url}`, {
-      headers: {
-        "Content-type": "application/json"
-      },
-      method,
-      body: JSON.stringify(body),
-    })
-      .then(res => res.json())
-  }
-
   const fetchAllTodos = () => {
-    return fetchApi({ url: '' });
-  }
-
-  const fetchCreateTodos = (todo) => {
-    return fetchApi({ url: '', method: 'POST', body: todo });
-  }
-
-  const fetchUpdateTodo = (id, data) => {
-    return fetchApi({ url: id, method: 'PATCH', body: data });
-  }
-
-  const fetchUpdateAllTodos = (data) => {
-    return fetchApi({ url: '', method: 'PATCH', body: data });
-  }
-
-  const fetchDeleteTodo = (id) => {
-    return fetchApi({ url: id, method: 'DELETE' });
-  }
-
-  const fetchDeleteAllCompleted = () => {
-    return fetchApi({ url: '', method: 'DELETE' });
-  }
-
-  const firstRenderPage = () => {
-    fetchAllTodos()
-      .then(tasks => {
-        if (!tasks.ok) throw new Error(tasks.message);
-        arrTodos.push(...tasks);
+    fetch(`${URL}`)
+      .then(res => res.json())
+      .then(res => {
+        if (res.statusCode >= 400) {
+          throw new Error(res.message);
+        }
+        arrTodos.push(...res);
         checkboxAll.checked = arrTodos.every((todo) => todo.isChecked);
         todoRender();
       })
       .catch(error => {
         error.message
-            .split(',')
-            .forEach(message => modalRender(message));
-      });
+          .split(',')
+          .forEach(message => modalRender(message));
+      })
+  }
+
+  const fetchCreateTodos = (todo) => {
+    fetch(`${URL}`, {
+      headers: {
+        "Content-type": "application/json"
+      },
+      method: 'POST',
+      body: JSON.stringify(todo),
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res.statusCode >= 400) {
+          throw new Error(res.message);
+        }
+
+        arrTodos.push(res);
+        filterType = filterTypes.all;
+        todoInput.value = '';
+
+        const filteredTasks = getFilteredTasks();
+        const page = Math.ceil(filteredTasks.length / COUNT_TODO);
+
+        if (currentPage !== page - 1) currentPage = page - 1;
+        todoRender();
+      })
+      .catch(error => {
+        error.message
+          .split(',')
+          .forEach(message => modalRender(message));
+      })
+  }
+
+  const fetchUpdateTodo = (id, data) => {
+    fetch(`${URL}/${id}`, {
+      headers: {
+        "Content-type": "application/json"
+      },
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res.statusCode >= 400) {
+          throw new Error(res.message)
+        }
+        
+        arrTodos = arrTodos.map(todo => todo.id === res.id ? { ...res } : todo)
+        todoRender();
+      })
+      .catch(error => {
+        error.message
+          .split(',')
+          .forEach(message => modalRender(message));
+      })
+  }
+
+  const fetchUpdateAllTodos = (data) => {
+    fetch(`${URL}`, {
+      headers: {
+        "Content-type": "application/json"
+      },
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res.statusCode >= 400) {
+          throw new Error(res.message)
+        }
+
+        arrTodos = arrTodos.map(todo => ({ ...todo, ...data }));
+        todoRender();
+      })
+      .catch(error => {
+        error.message
+          .split(',')
+          .forEach(message => modalRender(message));
+      })
+  }
+
+  const fetchDeleteTodo = (id) => {
+    fetch(`${URL}/${id}`, {
+      method: 'DELETE',
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res.statusCode >= 400) {
+          throw new Error(res.message)
+        }
+
+        arrTodos = arrTodos.filter((todo) => todo.id !== id);
+        todoRender();
+      })
+      .catch(error => {
+        error.message
+          .split(',')
+          .forEach(message => modalRender(message));
+      })
+  }
+
+  const fetchDeleteAllCompleted = () => {
+    fetch(`${URL}/delete`, {
+      method: 'DELETE',
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res.statusCode >= 400) {
+          throw new Error(res.message);
+        }
+
+        arrTodos = arrTodos.filter(todo => !todo.isChecked);
+        todoRender();
+      })
+      .catch(error => {
+        error.message
+          .split(',')
+          .forEach(message => modalRender(message));
+      })
+  }
+
+  const firstRenderPage = () => {
+    fetchAllTodos();
   }
 
   const screeningText = (text) => {
@@ -89,27 +180,11 @@
     const text = screeningText(todoInput.value);
 
     if (text) {
-      const todo = { text: 1, title: 2 };
+      const todo = { text };
+
       if (todoInput.value.length > 256) return alert('Max length 256');
-      fetchCreateTodos(todo)
-        .then(task => {
-          if (!task.ok) throw new Error(task.message);
 
-          arrTodos.push(task);
-          filterType = filterTypes.all;
-          todoInput.value = '';
-
-          const filteredTasks = getFilteredTasks();
-          const page = Math.ceil(filteredTasks.length / COUNT_TODO);
-
-          if (currentPage !== page - 1) currentPage = page - 1;
-          todoRender();
-        })
-        .catch(error => {
-          error.message
-            .split(',')
-            .forEach(message => modalRender(message));
-        });
+      fetchCreateTodos(todo);
     }
   }
 
@@ -118,36 +193,14 @@
   }
 
   const onDeleteTodo = (id) => {
-    fetchDeleteTodo(id)
-      .then(res => {
-        if (!res.ok) throw new Error(res.message);
-        arrTodos = arrTodos.filter((todo) => todo.id !== id);
-        todoRender();
-      })
-      .catch(error => {
-        error.message
-            .split(',')
-            .forEach(message => modalRender(message));
-      });
+    fetchDeleteTodo(id);
   }
 
   const checkAll = (e) => {
     e.preventDefault();
     const isChecked = e.target.checked;
 
-    if (arrTodos.length) {
-      fetchUpdateAllTodos({ isChecked })
-        .then(_ => {
-          if (!task.ok) throw new Error(task.message);
-          arrTodos = arrTodos.map(todo => ({ ...todo, isChecked }));
-          todoRender();
-        })
-        .catch(error => {
-          error.message
-            .split(',')
-            .forEach(message => modalRender(message));
-        });
-    }
+    if (arrTodos.length) fetchUpdateAllTodos({ isChecked });
   }
 
   const updateAllCheckbox = () => {
@@ -157,19 +210,7 @@
   }
 
   const changeItemCheckbox = (isChecked, id) => {
-    fetchUpdateTodo(id, { isChecked })
-      .then(res => {
-        arrTodos.forEach(todo => {
-          if (!todo.ok) throw new Error(todo.message);
-          if (todo.id === res.id) todo.isChecked = res.isChecked;
-        });
-        todoRender();
-      })
-      .catch(error => {
-        error.message
-            .split(',')
-            .forEach(message => modalRender(message));
-      });
+    fetchUpdateTodo(id, { isChecked });
   }
 
   const onHandleClick = (e) => {
@@ -188,7 +229,7 @@
     if (e.target.id === 'todo-text' && e.detail === DBL_CLICK) {
       e.target.hidden = true;
       e.target.previousElementSibling.hidden = false;
-      e.target.previousElementSibling.focus()
+      e.target.previousElementSibling.focus();
     }
   }
 
@@ -211,19 +252,7 @@
     const text = screeningText(e.target.value);
 
     if (text) {
-      fetchUpdateTodo(id, { text })
-        .then(res => {
-          if (!res.ok) throw new Error(res.message);
-          arrTodos.forEach(todo => {
-            if (todo.id === res.id) todo.text = res.text;
-          });
-          todoRender();
-        })
-        .catch(error => {
-          error.message
-            .split(',')
-            .forEach(message => modalRender(message));
-        })
+      fetchUpdateTodo(id, { text });
     } else {
       todoRender();
     }
@@ -231,17 +260,7 @@
 
   const deleteCompletedTasks = () => {
     if (arrTodos.length) {
-      fetchDeleteAllCompleted()
-        .then(res => {
-          if (!res.ok) throw new Error(res.message);
-          arrTodos = arrTodos.filter(todo => !todo.isChecked);
-          todoRender();
-        })
-        .catch(error => {
-          error.message
-            .split(',')
-            .forEach(message => modalRender(message));
-        });
+      fetchDeleteAllCompleted();
     }
   }
 
