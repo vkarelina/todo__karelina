@@ -33,10 +33,10 @@
         if (res.statusCode >= 400) {
           throw new Error(res.message);
         }
-        arrTodos.push(...res);
+        arrTodos = res;
         checkboxAll.checked = arrTodos.every((todo) => todo.isChecked);
-        todoRender();
       })
+      .then(_ => todoRender())
       .catch(error => {
         error.message
           .split(',')
@@ -96,6 +96,7 @@
         error.message
           .split(',')
           .forEach(message => modalRender(message));
+          fetchAllTodos();
       })
   }
 
@@ -120,6 +121,7 @@
         error.message
           .split(',')
           .forEach(message => modalRender(message));
+          fetchAllTodos();
       })
   }
 
@@ -140,6 +142,7 @@
         error.message
           .split(',')
           .forEach(message => modalRender(message));
+          fetchAllTodos();
       })
   }
 
@@ -160,6 +163,7 @@
         error.message
           .split(',')
           .forEach(message => modalRender(message));
+          fetchAllTodos();
       })
   }
 
@@ -178,11 +182,13 @@
 
   const addListElement = () => {
     const text = screeningText(todoInput.value);
+    todoInput.value = '';
+    todoInput.focus();
 
     if (text) {
       const todo = { text };
 
-      if (todoInput.value.length > 256) return alert('Max length 256');
+      if (todoInput.value.length > 256) throw new Error(modalRender('Max length 256'));
 
       fetchCreateTodos(todo);
     }
@@ -199,7 +205,7 @@
   const checkAll = (e) => {
     e.preventDefault();
     const isChecked = e.target.checked;
-
+    if (!arrTodos.length) return;
     if (arrTodos.length) fetchUpdateAllTodos({ isChecked });
   }
 
@@ -251,7 +257,10 @@
     const id = Number(e.target.parentElement.id);
     const text = screeningText(e.target.value);
 
-    if (text) {
+    const filter = arrTodos.find((todo) => todo.text !== text);
+
+    if (text && filter) {
+      if (text.length > 256) throw new Error(modalRender('Max length 256'));
       fetchUpdateTodo(id, { text });
     } else {
       todoRender();
@@ -371,12 +380,14 @@
                 <input 
                   class="form-check-input check-item"
                   type="checkbox"
+                  maxlength="256"
                   ${todo.isChecked ? 'checked' : ''}
                 >
                 <input
                   class="form-control"
                   id="input-edit" 
                   hidden
+                  maxlength="256"
                   value="${todo.text}"
                 >
                 <p id="todo-text">${todo.text}</p>
