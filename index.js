@@ -224,6 +224,7 @@
     const id = Number(e.target.parentElement.id);
 
     if (e.target.type === 'submit') {
+      if(e.detail >= 2) return;
       onDeleteTodo(id);
     }
 
@@ -259,7 +260,8 @@
 
     const filter = arrTodos.find((todo) => todo.text !== text);
 
-    if (text && filter) {
+    if (text && !!filter) {
+      console.log(1)
       if (text.length > 256) throw new Error(modalRender('Max length 256'));
       fetchUpdateTodo(id, { text });
     } else {
